@@ -73,8 +73,8 @@ class FavoriteRecipiesFragment : Fragment() {
         Snackbar.make(binding.root, "All recipes removed", Snackbar.LENGTH_SHORT).setAction("Okay"){}.show()
     }
 
-    override fun onDestroy() {
-        super.onDestroy()
+    override fun onDestroyView() {
+        super.onDestroyView()
         _binding = null
         mAdapter.clearContextualActionMode()
     }

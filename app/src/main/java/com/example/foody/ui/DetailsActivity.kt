@@ -19,6 +19,7 @@ import com.example.foody.ui.fragments.overview.OverviewFragment
 import com.example.foody.util.Constants.Companion.RECIPE_RESULT_KEY
 import com.example.foody.viewModels.MainViewModel
 import com.google.android.material.snackbar.Snackbar
+import com.google.android.material.tabs.TabLayoutMediator
 import dagger.hilt.android.AndroidEntryPoint
 import java.lang.Exception
 
@@ -33,6 +34,8 @@ class DetailsActivity : AppCompatActivity() {
 
     private var recipeSaved = false
     private var savedRecipeId = 0
+
+    lateinit var menuItem: MenuItem
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -65,17 +68,20 @@ class DetailsActivity : AppCompatActivity() {
         resultBundle.putParcelable(RECIPE_RESULT_KEY, args.result)
 
         val adapter = PageAdapter(
-            resultBundle, fragments, titles, supportFragmentManager
+            resultBundle, fragments, this
         )
 
         binding.viewPager.adapter = adapter
-        binding.tabLayout.setupWithViewPager(binding.viewPager)
+
+        TabLayoutMediator(binding.tabLayout, binding.viewPager) {tab, position ->
+            tab.text = titles[position]
+        }.attach()
     }
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
         menuInflater.inflate(R.menu.details_menu, menu)
-        val menuItem = menu?.findItem(R.id.save_to_favorites_menu)
-        checkSavedRecipes(menuItem!!)
+        menuItem = menu!!.findItem(R.id.save_to_favorites_menu)
+        checkSavedRecipes(menuItem)
         return true
     }
 
@@ -113,8 +119,6 @@ class DetailsActivity : AppCompatActivity() {
                         changeMeuItemColor(menuItem, R.color.yellow)
                         savedRecipeId = savedFavoriteRecipe.id
                         recipeSaved = true
-                    } else {
-                        changeMeuItemColor(menuItem, R.color.white)
                     }
                 }
             } catch (e: Exception) {
@@ -133,6 +137,7 @@ class DetailsActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
+        changeMeuItemColor(menuItem, R.color.white)
         Log.d("Details", "OnDestroy")
     }
 }

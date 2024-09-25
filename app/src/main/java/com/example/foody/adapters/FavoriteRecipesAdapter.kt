@@ -47,6 +47,8 @@ class FavoriteRecipesAdapter(
 
         holder.bind(currentRecipe)
 
+        saveItemStateOnScroll(currentRecipe, holder)
+
         holder.itemView.setOnClickListener {
             if (multiSelection) {
                 applySelection(holder, currentRecipe)
@@ -68,7 +70,7 @@ class FavoriteRecipesAdapter(
             } else {
                 multiSelection = false
                 mActionMode.finish()
-                false
+                true
             }
         }
     }
@@ -94,6 +96,14 @@ class FavoriteRecipesAdapter(
         val diffCalculate = DiffUtil.calculateDiff(recipesDiffUtil)
         favoriteRecipes = newFavoriteRecipe
         diffCalculate.dispatchUpdatesTo(this)
+    }
+
+    private fun saveItemStateOnScroll(currentRecipe: FavoritesEntity, holder: FavoriteRecipeViewHolder) {
+        if (selectedRecipes.contains(currentRecipe)) {
+            changeRecipeStyle(holder, R.color.cardBackgroundLightColor, R.color.colorPrimary)
+        } else {
+            changeRecipeStyle(holder, R.color.cardBackgroundColor, R.color.strokeColor)
+        }
     }
 
     private fun applySelection(holder: FavoriteRecipeViewHolder, currentRecipe: FavoritesEntity) {

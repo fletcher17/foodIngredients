@@ -35,6 +35,9 @@ import kotlinx.coroutines.launch
 class RecipiesFragment : Fragment(), SearchView.OnQueryTextListener {
 
     private var _binding: FragmentRecipiesBinding? = null
+
+    private var dataRequested = false
+
     private val binding get() = _binding!!
 
     private val args by navArgs<RecipiesFragmentArgs>()
@@ -57,7 +60,7 @@ class RecipiesFragment : Fragment(), SearchView.OnQueryTextListener {
         savedInstanceState: Bundle?
     ): View {
         // Inflate the layout for this fragment
-        _binding =  FragmentRecipiesBinding.inflate(layoutInflater, container, false)
+        _binding = FragmentRecipiesBinding.inflate(layoutInflater, container, false)
         binding.lifecycleOwner = this
         binding.mainViewModel = mainViewModel
 
@@ -122,12 +125,14 @@ class RecipiesFragment : Fragment(), SearchView.OnQueryTextListener {
     private fun readDatabase() {
         lifecycleScope.launch {
             mainViewModel.readRecipes.observeOnce(viewLifecycleOwner) { database ->
-                if (database.isNotEmpty() && !args.backFromBottomSheet) {
-                    Log.d("recipe fragment", "readDatabase called")
+                if (database.isNotEmpty() && !args.backFromBottomSheet || database.isNotEmpty() && dataRequested) {
                     mAdapter.setData(database[0].foodRecipe)
                     hideShimmerEffect()
                 } else {
-                    requestApiData()
+                    if (!dataRequested) {
+                        requestApiData()
+                        dataRequested = true
+                    }
                 }
             }
         }
@@ -139,11 +144,13 @@ class RecipiesFragment : Fragment(), SearchView.OnQueryTextListener {
         mainViewModel.getRecipes(recipesViewModel.applyQueries())
         mainViewModel.recipesResponse.observe(viewLifecycleOwner) { response ->
             Log.d("response type", "$response")
-            when(response) {
+            when (response) {
                 is NetworkResult.Success -> {
                     hideShimmerEffect()
                     response.data?.let { mAdapter.setData(it) }
+                    recipesViewModel.saveMealAndDietType()
                 }
+
                 is NetworkResult.Error -> {
                     hideShimmerEffect()
                     loadDataFromCache()
@@ -153,6 +160,7 @@ class RecipiesFragment : Fragment(), SearchView.OnQueryTextListener {
                         Toast.LENGTH_LONG
                     ).show()
                 }
+
                 is NetworkResult.Loading -> {
                     showShimmerEffect()
                 }
@@ -164,25 +172,27 @@ class RecipiesFragment : Fragment(), SearchView.OnQueryTextListener {
         showShimmerEffect()
         mainViewModel.searchRecipes(recipesViewModel.applySearchQuery(searchQuery))
         lifecycleScope.launch {
-        mainViewModel.searchedRecipesResponse.collect { response ->
-            when(response) {
-                is NetworkResult.Success -> {
-                    hideShimmerEffect()
-                    val foodRecipe = response.data
-                    foodRecipe?.let {
-                        mAdapter.setData(it)
+            mainViewModel.searchedRecipesResponse.collect { response ->
+                when (response) {
+                    is NetworkResult.Success -> {
+                        hideShimmerEffect()
+                        val foodRecipe = response.data
+                        foodRecipe?.let {
+                            mAdapter.setData(it)
+                        }
+                    }
+
+                    is NetworkResult.Error -> {
+                        hideShimmerEffect()
+                        loadDataFromCache()
+                        Toast.makeText(requireContext(), response.message, Toast.LENGTH_LONG).show()
+                    }
+
+                    is NetworkResult.Loading -> {
+                        showShimmerEffect()
                     }
                 }
-                is NetworkResult.Error -> {
-                    hideShimmerEffect()
-                    loadDataFromCache()
-                    Toast.makeText(requireContext(), response.message, Toast.LENGTH_LONG).show()
-                }
-                is NetworkResult.Loading -> {
-                    showShimmerEffect()
-                }
             }
-        }
 
         }
     }
@@ -201,11 +211,18 @@ class RecipiesFragment : Fragment(), SearchView.OnQueryTextListener {
 
 
     private fun showShimmerEffect() {
-        binding.recyclerView.showShimmer()
+        binding.apply {
+            shimmerLayout.startShimmer()
+            recyclerView.visibility = View.GONE
+        }
     }
 
     private fun hideShimmerEffect() {
-        binding.recyclerView.hideShimmer()
+        binding.apply {
+            shimmerLayout.stopShimmer()
+            shimmerLayout.visibility = View.GONE
+            recyclerView.visibility = View.VISIBLE
+        }
     }
 
     override fun onDestroyView() {

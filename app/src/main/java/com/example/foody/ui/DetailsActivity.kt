@@ -53,9 +53,6 @@ class DetailsActivity : AppCompatActivity() {
         fragments.add(InstructionsFragment())
 
         val titles = ArrayList<String>()
-//        titles.add("Overview")
-//        titles.add("Ingredients")
-//        titles.add("Instructions")
 
         titles.apply {
             add("Overview")
@@ -71,6 +68,7 @@ class DetailsActivity : AppCompatActivity() {
             resultBundle, fragments, this
         )
 
+        binding.viewPager.isUserInputEnabled = false
         binding.viewPager.adapter = adapter
 
         TabLayoutMediator(binding.tabLayout, binding.viewPager) {tab, position ->
